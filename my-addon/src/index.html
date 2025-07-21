@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="description"
+            content="Get started with Add-on development using JavaScript"
+        />
+        <meta name="keywords" content="Adobe, Express, Add-On, JavaScript" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Get Started</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            body {
+                font-family: "Orbitron", sans-serif; /* Using Inter font */
+                background-color: white;
+            }
+
+            textarea[readonly] {                
+                cursor: default; /* Indicate it's not editable */
+            }
+
+            #copyFileNameBtn svg,
+            #copyAltTextBtn svg,
+            #copyKeywordsBtn svg {
+                color: #374151;
+            }
+            
+            /* Dynamic hover state for color picker button */
+            #color-picker-button:hover {
+                background-color: var(--hover-color, #4b5563) !important;
+            }
+        </style>
+    </head>
+    <body>
+        <div
+            class="container mx-auto max-w-sm rounded-lg p-6 space-y-6"
+        >
+            <h2 class="text-2xl font-semibold text-gray-800 text-center">
+                MaskMaster
+            </h2>
+
+            <div>
+                <button
+                    id="previewCanvasBtn"
+                    class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium mb-3"
+                >
+                    Load Element
+                </button>
+                <p class="text-xs text-gray-500 italic mb-2 ml-1">
+                    * Ensure the element is in front of a white background
+                </p>
+
+                <!-- OR Divider -->
+                <div class="flex items-center my-2">
+                    <div class="flex-grow border-t border-gray-300"></div>
+                    <span class="mx-2 text-gray-400 text-xs font-medium">OR</span>
+                    <div class="flex-grow border-t border-gray-300"></div>
+                </div>
+
+                <button
+                    id="uploadPngBtn"
+                    class="btn btn-outline btn-primary w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium mb-3"
+                >
+                    Upload PNG
+                </button>
+                <div
+                    id="selectedElementInfo"
+                    class="p-3 bg-gray-100 rounded-md text-gray-600 text-sm italic break-words"
+                >
+                    No content selected
+                </div>
+            </div>
+
+            <div class="flex justify-between gap-4 mt-4">
+                <button
+                    id="imageBtn"
+                    class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200 ease-in-out text-base font-medium"
+                >
+                    Mask Image
+                </button>
+                <button
+                    id="videoBtn"
+                    class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition duration-200 ease-in-out text-base font-medium"
+                >
+                    Mask Video <span class="text-xs text-blue-200 align-middle ml-1">(Beta)</span>
+                </button>
+            </div>
+            <!-- <div class="flex items-center my-2">
+                <div class="flex-grow border-t border-gray-200"></div>
+                <span class="mx-2 text-gray-400 text-xs font-medium">OR</span>
+                <div class="flex-grow border-t border-gray-200"></div>
+            </div> -->
+
+            <div class="flex items-center gap-2 w-full">
+                
+                <button
+                    id="maskBtn"
+                    class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:blue-500 focus:ring-opacity-50 transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium"
+                >
+                    Get Element Mask 
+                </button>
+                <button 
+                    id="color-picker-button"
+                    class="bg-gray-600 text-white py-2 px-3 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium"
+                >
+                    🎨
+                </button>
+
+            </div>
+            <div
+            id="outputedItem"
+            class="p-3 bg-gray-100 rounded-md text-gray-600 text-sm italic break-words"
+            >
+                Result will be displayed here
+
+            </div>      
+            
+            <button
+            id="addToCanvasBtn"
+            class="w-full bg-green-600 text-white py-1 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200 ease-in-out text-base font-medium"
+            >
+                Add to Canvas
+            </button>
+            
+
+            <div
+                id="statusMessage"
+                class="text-center text-sm text-gray-600 min-h-[1.25rem]"
+            ></div>
+        </div>
+        <script type="module" src="ui/index.js"></script>
+    </body>
+</html>

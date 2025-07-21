@@ -1,0 +1,23 @@
+{
+    "testId": "dffd86ff-ee7d-476d-b3b4-193f0088ec55",
+    "name": "MaskMaster",
+    "version": "1.0.0",
+    "manifestVersion": 2,
+    "requirements": {
+        "apps": [
+            {
+                "name": "Express",
+                "apiVersion": 1
+            }
+        ],
+        "renditionPreview": true
+    },
+    "entryPoints": [
+        {
+            "type": "panel",
+            "id": "panel1",
+            "main": "index.html",
+            "documentSandbox": "sandbox/code.js"
+        }
+    ]
+}
