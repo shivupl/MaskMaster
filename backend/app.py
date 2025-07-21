@@ -21,40 +21,6 @@ session = new_session(model_name="u2netp")  # Options: u2net, u2netp, u2net_huma
 CORS(app, origins=["https://localhost:5241"])  # allow all origins (you can restrict this if needed)
 
 
-# @app.route("/process", methods=["POST"])
-# def process_image():
-#     print("checkpt1")
-#     if "image" not in request.files:
-#         return {"error": "No image uploaded"}, 400
-
-#     uploaded_file = request.files["image"]
-#     print("checkpt2")
-#     try:
-#         input_image = Image.open(uploaded_file.stream).convert("RGBA")
-#         print("checkpt3")
-#         output_image = remove(input_image, session=session)
-#         print("checkpt4")
-#         # Convert output image to a file-like object for response
-#         img_io = io.BytesIO()
-#         output_image.save(img_io, format="PNG")
-#         img_io.seek(0)
-
-#         os.makedirs("output", exist_ok=True)
-#         output_path = os.path.join("output", "bg-removed.png")
-#         output_image.save(output_path)
-
-#         print("checkpt5")
-
-#         return send_file(
-#             img_io,
-#             mimetype="image/png",
-#             as_attachment=False,                   
-#         )
-    
-    
-#     except Exception as e:
-#         return {"error": str(e)}, 500
-
 @app.route("/process", methods=["POST"])
 def process_image():
     print("checkpt1")
@@ -85,9 +51,6 @@ def process_image():
         output_image.save(img_io, format="PNG")
         img_io.seek(0)
 
-        os.makedirs("output", exist_ok=True)
-        output_path = os.path.join("output", "bg-removed.png")
-        output_image.save(output_path)
 
         print("checkpt5")
 
@@ -100,50 +63,6 @@ def process_image():
     except Exception as e:
         return {"error": str(e)}, 500
 
-
-def apply_video_mask(mask_image_path, video_path, output_path="output/video_inside_mask.mp4"):
-    mask_img = Image.open(mask_image_path).convert("RGBA")
-    alpha = mask_img.getchannel("A")
-    mask_np = np.array(alpha) > 0  
-
-    W, H = mask_img.size
-    print("checkpt7")
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        print("❌ Could not open video")
-        return
-    print("checkpt8")
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    print("Video path:", video_path)
-    print("Output path:", output_path)
-    print("Resolution:", W, H)
-    print("FPS:", fps)
-    print("checkpt8.1")
-
-    writer = imageio.get_writer(output_path, fps=fps)
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        # Resize video frame to match mask
-        frame = cv2.resize(frame, (W, H))
-
-        # Apply mask: only show video inside alpha region
-        frame_rgba = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
-        frame_rgba[~mask_np] = (0, 0, 0, 255)  # set outside mask to black
-
-        # Convert back to BGR for saving
-        output_bgr = cv2.cvtColor(frame_rgba, cv2.COLOR_BGRA2BGR)
-        writer.append_data(output_bgr)
-
-
-    cap.release()
-    writer.close()
-
-    print(f"Saved: {output_path}")
 
 
 @app.route("/mask-video", methods=["POST"])
@@ -194,7 +113,7 @@ def mask_video():
 
     except Exception as e:
         import traceback
-        print("❌ Error:", traceback.format_exc())
+        print("error:", traceback.format_exc())
         return {"error": str(e)}, 500
     
 
@@ -230,40 +149,6 @@ def mask_image():
 
     except Exception as e:
         return {"error": str(e)}, 500
-
-# @app.route("/outter-mask-image", methods=["POST"])
-# def outter_mask_image():
-#     if "foreground" not in request.files or "background" not in request.files:
-#         return {"error": "Missing one or more images"}, 400
-
-#     foreground_file = request.files["foreground"]
-#     background_file = request.files["background"]
-
-#     try:
-#         # Load images into PIL
-#         object_img = Image.open(foreground_file.stream).convert("RGBA")
-#         background_img = Image.open(background_file.stream).convert("RGBA")
-
-#         # Resize background to match foreground
-#         background_img = background_img.resize(object_img.size)
-
-#         # Get alpha mask and invert it
-#         alpha = object_img.getchannel("A")
-#         inverted_alpha = Image.eval(alpha, lambda a: 255 - a)
-
-#         # Use the inverted mask to only keep background *outside* the object
-#         transparent = Image.new("RGBA", object_img.size, (0, 0, 0, 0))
-#         result = Image.composite(background_img, transparent, inverted_alpha)
-
-#         # Return the result as PNG
-#         img_io = io.BytesIO()
-#         result.save(img_io, format="PNG")
-#         img_io.seek(0)
-
-#         return send_file(img_io, mimetype="image/png")
-
-#     except Exception as e:
-#         return {"error": str(e)}, 500
 
 
 @app.route("/outter-mask-image", methods=["POST"])
