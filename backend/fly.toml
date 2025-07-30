@@ -1,0 +1,25 @@
+# fly.toml app configuration file generated for backend-billowing-waterfall-2609 on 2025-07-22T02:16:34+05:30
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "backend-billowing-waterfall-2609"
+primary_region = "sjc"
+
+[build]
+  # (nothing special here)
+
+[env]
+  # only needed if you kept `flask run`
+  FLASK_APP = "app.py"
+
+[http_service]
+  internal_port = 8080
+  auto_stop_machines = false  # Machines never sleep
+  auto_start_machines = true
+  min_machines_running = 1    # Keep at least 1 running
+
+[machine]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

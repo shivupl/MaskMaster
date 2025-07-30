@@ -18,10 +18,11 @@ app = Flask(__name__)
 
 session = new_session(model_name="u2netp")  # Options: u2net, u2netp, u2net_human_seg, isnet-general-use
 
-CORS(app, origins=["https://localhost:5241"])  # allow all origins (you can restrict this if needed)
+# CORS(app, resources={r"/*": {"origins": ["https://express.adobe.com", "http://localhost:5241"]}})
+CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})
 
 
-@app.route("/process", methods=["POST"])
+@app.route("/process", methods=["POST", "OPTIONS"])
 def process_image():
     print("checkpt1")
     if "image" not in request.files:
@@ -118,7 +119,7 @@ def mask_video():
     
 
 
-@app.route("/mask-image", methods=["POST"])
+@app.route("/mask-image", methods=["POST", "OPTIONS"])
 def mask_image():
     if "foreground" not in request.files or "background" not in request.files:
         return {"error": "Missing one or more images"}, 400
@@ -181,4 +182,5 @@ def outter_mask_image():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port = 5002)
+    app.run(host="0.0.0.0", port=8080)
+
