@@ -151,7 +151,7 @@ addOnUISdk.ready.then(async () => {
         formData.append("foreground", foregroundBlob, "fg.png");
         formData.append("background", backgroundBlob, "bg.png");
     
-        const response = await fetch("http://127.0.0.1:5002/mask-image", {
+        const response = await fetch("https://backend-billowing-waterfall-2609.fly.dev/mask-image", {
             method: "POST",
             body: formData,
         });
@@ -194,7 +194,7 @@ addOnUISdk.ready.then(async () => {
         formData.append("foreground", foregroundBlob, "fg.png");
         formData.append("background", backgroundBlob, "bg.mp4");
     
-        const response = await fetch("http://127.0.0.1:5002/mask-video", {
+        const response = await fetch("https://backend-billowing-waterfall-2609.fly.dev/mask-video", {
             method: "POST",
             body: formData,
         });
@@ -283,7 +283,7 @@ addOnUISdk.ready.then(async () => {
         // Include color as JSON string
         formData.append("color", JSON.stringify(selectedColor));
     
-        const response = await fetch("http://127.0.0.1:5002/outter-mask-image", {
+        const response = await fetch("https://backend-billowing-waterfall-2609.fly.dev/outter-mask-image", {
             method: "POST",
             body: formData,
         });
@@ -372,7 +372,7 @@ addOnUISdk.ready.then(async () => {
         formData.append("image", blob, "input.png");
 
         try {
-            const response = await fetch("http://127.0.0.1:5002/process", {
+            const response = await fetch("https://backend-billowing-waterfall-2609.fly.dev/process", {
               method: "POST",
               body: formData
             });
