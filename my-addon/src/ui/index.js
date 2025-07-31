@@ -13,6 +13,8 @@ addOnUISdk.ready.then(async () => {
     let processedImage = null;
     let selectedColor = [0, 0, 0, 255]; 
     let currentImage = null;
+    let maskImage = null; // Store the mask image
+    let currentBlobUrl = null; // Track current blob URL for cleanup
 
 
     const previewBtn = document.getElementById("previewCanvasBtn");
@@ -27,6 +29,16 @@ addOnUISdk.ready.then(async () => {
 
     addToCanvasBtn.disabled = true;
     addToCanvasBtn.hidden = true;
+    videoBtn.disabled = true;
+    imageBtn.disabled = true; // Disable Mask Image button by default
+
+    // Function to clean up blob URLs
+    function cleanupBlobUrl() {
+        if (currentBlobUrl) {
+            URL.revokeObjectURL(currentBlobUrl);
+            currentBlobUrl = null;
+        }
+    }
 
     colorPickerBtn.addEventListener("click", () => {
         app.showColorPicker(colorPickerBtn, {
@@ -138,10 +150,18 @@ addOnUISdk.ready.then(async () => {
             if(!file) return;
 
             console.log("file", file);
+            
+            // Clean up previous blob URL
+            cleanupBlobUrl();
+            
             const url = URL.createObjectURL(file);
+            currentBlobUrl = url; // Track the new blob URL
             processedImage = file;
             console.log("processedImage", processedImage, url);
             container.innerHTML = `<img src="${url}" alt="Canvas preview" style="max-width: 100%; height: auto;" />`;
+            
+            // Enable Mask Image button since we now have a base image
+            imageBtn.disabled = false;
         };
     });
 
@@ -155,7 +175,9 @@ addOnUISdk.ready.then(async () => {
                 left: 0;
                 width: 100vw;
                 height: 100vh;
-                background: rgba(0, 0, 0, 0.8);
+                background: rgba(0, 0, 0, 0.57);
+                backdrop-filter: blur(6px);
+                -webkit-backdrop-filter: blur(6px);
                 z-index: 1000;
                 display: flex;
                 flex-direction: column;
@@ -164,7 +186,7 @@ addOnUISdk.ready.then(async () => {
             // Header
             const header = document.createElement('div');
             header.style.cssText = `
-                background: #2a2a2a;
+                background:rgb(30, 136, 229);
                 color: white;
                 padding: 12px 20px;
                 display: flex;
@@ -173,8 +195,7 @@ addOnUISdk.ready.then(async () => {
                 border-bottom: 1px solid #444;
             `;
             header.innerHTML = `
-                <div style="font-weight: 600; font-size: 16px;">Crop Mask Image</div>
-                <div style="font-size: 12px; color: #ccc;">Background: Original Object | Overlay: Mask Image</div>
+                <div style="font-weight: 600; font-size: 16px;">Adjust Image Mask</div>
                 <button id="close-crop-btn" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">×</button>
             `;
 
@@ -204,9 +225,11 @@ addOnUISdk.ready.then(async () => {
 
             // Add background image (original uploaded object)
             let croppieInstance = null;
+            let backgroundBlobUrl = null; // Track background blob URL
             
             if (processedImage) {
                 const backgroundUrl = URL.createObjectURL(processedImage);
+                backgroundBlobUrl = backgroundUrl; // Track for cleanup
                 
                 // Wait for background image to load to get its dimensions
                 const tempImg = new Image();
@@ -290,12 +313,17 @@ addOnUISdk.ready.then(async () => {
             const buttonContainer = document.createElement('div');
             buttonContainer.style.cssText = `
                 display: flex;
+                flex-direction: column;
                 gap: 10px;
                 justify-content: center;
+                align-items: center;
             `;
             buttonContainer.innerHTML = `
-                <button id="crop-btn" style="background: #0078d4; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 14px;">Apply Crop</button>
-                <button id="cancel-crop-btn" style="background: #444; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">Cancel</button>
+                <div style="font-size: 12px; color: #999; text-align: center">Scroll to zoom</div>
+                <div style="display: flex; gap: 10px;">
+                    <button id="crop-btn" style="background: #0078d4; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 14px;">Apply Crop</button>
+                    <button id="cancel-crop-btn" style="background: #444; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">Cancel</button>
+                </div>
             `;
 
             // Assemble modal
@@ -318,6 +346,7 @@ addOnUISdk.ready.then(async () => {
                     filter: brightness(0.7) !important;
                 }
             `;
+
             document.head.appendChild(style);
 
             // Event handlers
@@ -331,11 +360,23 @@ addOnUISdk.ready.then(async () => {
                         onCropComplete(blob);
                         document.body.removeChild(modal);
                         document.head.removeChild(style);
+                        
+                        // Clean up blob URLs
+                        if (backgroundBlobUrl) {
+                            URL.revokeObjectURL(backgroundBlobUrl);
+                        }
+                        
                         resolve();
                     }).catch((error) => {
                         console.error('Croppie error:', error);
                         document.body.removeChild(modal);
                         document.head.removeChild(style);
+                        
+                        // Clean up blob URLs
+                        if (backgroundBlobUrl) {
+                            URL.revokeObjectURL(backgroundBlobUrl);
+                        }
+                        
                         resolve();
                     });
                 }
@@ -344,12 +385,24 @@ addOnUISdk.ready.then(async () => {
             document.getElementById('cancel-crop-btn').addEventListener('click', () => {
                 document.body.removeChild(modal);
                 document.head.removeChild(style);
+                
+                // Clean up blob URLs
+                if (backgroundBlobUrl) {
+                    URL.revokeObjectURL(backgroundBlobUrl);
+                }
+                
                 resolve();
             });
 
             document.getElementById('close-crop-btn').addEventListener('click', () => {
                 document.body.removeChild(modal);
                 document.head.removeChild(style);
+                
+                // Clean up blob URLs
+                if (backgroundBlobUrl) {
+                    URL.revokeObjectURL(backgroundBlobUrl);
+                }
+                
                 resolve();
             });
         });
@@ -584,11 +637,19 @@ addOnUISdk.ready.then(async () => {
         const croppedImage = await cropImage(image, bounds);
         processedImage = await processImage(croppedImage);
         console.log("url1 - -", croppedImage);
+        
+        // Clean up previous blob URL
+        cleanupBlobUrl();
+        
         // const url = URL.createObjectURL(croppedImage);
         const url = URL.createObjectURL(processedImage);
+        currentBlobUrl = url; // Track the new blob URL
         console.log("url - -", url);
+        
+        // Enable Mask Image button since we now have a base image
+        imageBtn.disabled = false;
+        
         return url;
-
     }
 
     async function processImage(blob) {
