@@ -98,28 +98,31 @@ addOnUISdk.ready.then(async () => {
         input.accept = 'image/*';
         input.click();
 
-
         input.onchange = async (e) => {
             const file = e.target.files[0];
             console.log(file);
             if(!file) return;
 
-            // call
-            const result = await callMaskImage(processedImage, file);
-            console.log("result", result);
-            // container.innerHTML = `<img src="${result}" alt="Canvas preview" />`;
-            // const r = URL.createObjectURL(result);
-            // container.innerHTML = `<img src="${result}" alt="Canvas preview" />`;
-            outputContainer.innerHTML = `<img src="${result}" alt="Canvas preview" />`;
+            // Show Croppie interface for cropping the mask image
+            const url = URL.createObjectURL(file);
+            await showCroppieInterface(url, async (croppedBlob) => {
+                // Show loading state
+                outputContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Masking image...</div>';
 
-
+                try {
+                    // call
+                    const result = await callMaskImage(processedImage, croppedBlob);
+                    console.log("result", result);
+                    outputContainer.innerHTML = `<img src="${result}" alt="Canvas preview" />`;
+                } catch (error) {
+                    console.error("Error processing image:", error);
+                    outputContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #ff0000;">Error processing image. Please try again.</div>';
+                }
+            });
         };
 
         //execute rest
-
         console.log("processedImage", processedImage);
-
-
     });
 
     uploadPngBtn.addEventListener("click", async () => {
@@ -138,13 +141,220 @@ addOnUISdk.ready.then(async () => {
             const url = URL.createObjectURL(file);
             processedImage = file;
             console.log("processedImage", processedImage, url);
-            container.innerHTML = `<img src="${url}" alt="Canvas preview" />`;
-
+            container.innerHTML = `<img src="${url}" alt="Canvas preview" style="max-width: 100%; height: auto;" />`;
         };
-        
-
-
     });
+
+    function showCroppieInterface(imageUrl, onCropComplete) {
+        return new Promise((resolve) => {
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 1000;
+                display: flex;
+                flex-direction: column;
+            `;
+
+            // Header
+            const header = document.createElement('div');
+            header.style.cssText = `
+                background: #2a2a2a;
+                color: white;
+                padding: 12px 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px solid #444;
+            `;
+            header.innerHTML = `
+                <div style="font-weight: 600; font-size: 16px;">Crop Mask Image</div>
+                <div style="font-size: 12px; color: #ccc;">Background: Original Object | Overlay: Mask Image</div>
+                <button id="close-crop-btn" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">×</button>
+            `;
+
+            // Content area
+            const content = document.createElement('div');
+            content.style.cssText = `
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                padding: 20px;
+                align-items: center;
+            `;
+
+            // Croppie container with background
+            const croppieContainer = document.createElement('div');
+            croppieContainer.style.cssText = `
+                width: 100%;
+                max-width: 300px;
+                height: 225px;
+                background: #1a1a1a;
+                border-radius: 8px;
+                overflow: hidden;
+                margin-bottom: 20px;
+                position: relative;
+                
+            `;
+
+            // Add background image (original uploaded object)
+            let croppieInstance = null;
+            
+            if (processedImage) {
+                const backgroundUrl = URL.createObjectURL(processedImage);
+                
+                // Wait for background image to load to get its dimensions
+                const tempImg = new Image();
+                tempImg.onload = () => {
+                    const imgWidth = tempImg.naturalWidth;
+                    const imgHeight = tempImg.naturalHeight;
+                    
+                    // Calculate the scale factor to fit the background image in the container
+                    const containerWidth = 300;
+                    const containerHeight = 225;
+                    const scaleX = containerWidth / imgWidth;
+                    const scaleY = containerHeight / imgHeight;
+                    const scale = Math.min(scaleX, scaleY) * 0.8; // 80% of max fit
+                    
+                    // Calculate the scaled dimensions
+                    const scaledWidth = imgWidth * scale;
+                    const scaledHeight = imgHeight * scale;
+                    
+                    // Initialize Croppie with fixed viewport size matching the background image
+                    croppieInstance = new Croppie(croppieContainer, {
+                        viewport: { 
+                            width: Math.round(scaledWidth), 
+                            height: Math.round(scaledHeight), 
+                            type: 'square' 
+                        },
+                        boundary: { width: containerWidth, height: containerHeight },
+                        enableOrientation: false, // Disable rotation to keep fixed size
+                        enableResize: false, // Disable resize to keep fixed size
+                        showZoomer: true,
+                        enableZoom: true,
+                        mouseWheelZoom: true,
+                        enableExif: true
+                    });
+                    
+                    croppieInstance.bind({
+                        url: imageUrl
+                    });
+                    
+                    // After Croppie is initialized, add the background image on top of the viewport
+                    setTimeout(() => {
+                        const viewport = croppieContainer.querySelector('.cr-viewport');
+                        if (viewport) {
+                            // Create a new background image specifically for the viewport
+                            const viewportBackgroundImg = new Image();
+                            viewportBackgroundImg.src = backgroundUrl;
+                            viewportBackgroundImg.style.cssText = `
+                                position: absolute;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                                opacity: 0.8;
+                                pointer-events: none;
+                                z-index: 10;
+                                mix-blend-mode: multiply;
+                            `;
+                            viewport.appendChild(viewportBackgroundImg);
+                        }
+                    }, 100);
+                };
+                tempImg.src = backgroundUrl;
+            } else {
+                // Fallback if no background image
+                croppieInstance = new Croppie(croppieContainer, {
+                    viewport: { width: 150, height: 150, type: 'square' },
+                    boundary: { width: 300, height: 225 },
+                    enableOrientation: false,
+                    enableResize: false,
+                    showZoomer: true,
+                    enableZoom: true,
+                    mouseWheelZoom: true,
+                    enableExif: true
+                });
+                
+                croppieInstance.bind({
+                    url: imageUrl
+                });
+            }
+
+            // Buttons
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = `
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+            `;
+            buttonContainer.innerHTML = `
+                <button id="crop-btn" style="background: #0078d4; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 14px;">Apply Crop</button>
+                <button id="cancel-crop-btn" style="background: #444; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">Cancel</button>
+            `;
+
+            // Assemble modal
+            content.appendChild(croppieContainer);
+            content.appendChild(buttonContainer);
+            modal.appendChild(header);
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+
+            // Add CSS to reduce Croppie overlay opacity and make overlay less bright
+            const style = document.createElement('style');
+            style.textContent = `
+                .cr-viewport {
+                    opacity: 0.6 !important;
+                }
+                .cr-overlay {
+                    opacity: 0.4 !important;
+                }
+                .cr-viewport img {
+                    filter: brightness(0.7) !important;
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Event handlers
+            document.getElementById('crop-btn').addEventListener('click', () => {
+                if (croppieInstance) {
+                    croppieInstance.result({
+                        type: 'blob',
+                        size: 'original',
+                        format: 'png'
+                    }).then((blob) => {
+                        onCropComplete(blob);
+                        document.body.removeChild(modal);
+                        document.head.removeChild(style);
+                        resolve();
+                    }).catch((error) => {
+                        console.error('Croppie error:', error);
+                        document.body.removeChild(modal);
+                        document.head.removeChild(style);
+                        resolve();
+                    });
+                }
+            });
+
+            document.getElementById('cancel-crop-btn').addEventListener('click', () => {
+                document.body.removeChild(modal);
+                document.head.removeChild(style);
+                resolve();
+            });
+
+            document.getElementById('close-crop-btn').addEventListener('click', () => {
+                document.body.removeChild(modal);
+                document.head.removeChild(style);
+                resolve();
+            });
+        });
+    }
+
 
     async function callMaskImage(foregroundBlob, backgroundBlob) {
         const formData = new FormData();
@@ -244,16 +454,22 @@ addOnUISdk.ready.then(async () => {
             console.log(file);
             if(!file) return;
 
-            // call
-            const result = await callMaskVideo(processedImage, file);
-            const resultBlob = result.blob;
-            console.log("result", result);
-            // container.innerHTML = `<img src="${result}" alt="Canvas preview" />`;
-            // const r = URL.createObjectURL(result);
-            // container.innerHTML = `<img src="${result}" alt="Canvas preview" />`;
-            outputContainer.innerHTML = `<video src="${result}" alt="Canvas preview" autoplay muted />`;
+            // Show loading state
+            outputContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Masking video...</div>';
 
-
+            try {
+                // call
+                const result = await callMaskVideo(processedImage, file);
+                const resultBlob = result.blob;
+                console.log("result", result);
+                // container.innerHTML = `<img src="${result}" alt="Canvas preview" />`;
+                // const r = URL.createObjectURL(result);
+                // container.innerHTML = `<img src="${result}" alt="Canvas preview" />`;
+                outputContainer.innerHTML = `<video src="${result}" alt="Canvas preview" autoplay muted />`;
+            } catch (error) {
+                console.error("Error processing video:", error);
+                outputContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #ff0000;">Error processing video. Please try again.</div>';
+            }
         };
 
         //execute rest
@@ -267,10 +483,18 @@ addOnUISdk.ready.then(async () => {
     maskBtn.addEventListener("click", async () => {
         console.log("Mask clicked");        
 
-        const result = await callGetMask(processedImage);
-        console.log("result", result);
+        // Show loading state
+        outputContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Creating outer mask...</div>';
 
-        outputContainer.innerHTML = `<img src="${result}" alt="Canvas preview" />`;
+        try {
+            const result = await callGetMask(processedImage);
+            console.log("result", result);
+
+            outputContainer.innerHTML = `<img src="${result}" alt="Canvas preview" />`;
+        } catch (error) {
+            console.error("Error creating mask:", error);
+            outputContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #ff0000;">Error creating mask. Please try again.</div>';
+        }
 
         console.log("processedImage", processedImage);
         
