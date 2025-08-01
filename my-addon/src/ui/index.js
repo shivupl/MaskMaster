@@ -26,11 +26,13 @@ addOnUISdk.ready.then(async () => {
     const colorPickerBtn = document.getElementById("color-picker-button");
     const addToCanvasBtn = document.getElementById("addToCanvasBtn");
     const uploadPngBtn = document.getElementById("uploadPngBtn");
+    const clearPreviewBtn = document.getElementById("clearPreviewBtn");
 
     addToCanvasBtn.disabled = true;
     addToCanvasBtn.hidden = true;
     videoBtn.disabled = true;
     imageBtn.disabled = true; // Disable Mask Image button by default
+    maskBtn.disabled = true; // Disable Get Outer Mask button by default
 
     // Function to clean up blob URLs
     function cleanupBlobUrl() {
@@ -76,6 +78,20 @@ addOnUISdk.ready.then(async () => {
         container.textContent = "Loading preview…";
         console.log("here1");
         try {
+            // First check if the current page has premium content
+            const pagesMetadata = await app.document.getPagesMetadata({
+                range: constants.Range.currentPage
+            });
+            
+            if (pagesMetadata.length > 0 && pagesMetadata[0].hasPremiumContent) {
+                // Check if user is premium
+                const userIsPremium = await app.currentUser.isPremiumUser();
+                if (!userIsPremium) {
+                    throw new Error("Premium content detected. Please ensure there is no premium content on the page that requires a subscription to access.");
+                }
+                // If user is premium, continue with the process
+            }
+
             const [rend] = await app.document.createRenditions(
                 {
                     range: constants.Range.currentPage,
@@ -91,12 +107,16 @@ addOnUISdk.ready.then(async () => {
 
             // container.innerHTML = `<img src="${url}" alt="Canvas preview" />`;
             container.innerHTML = `<img src="${result}" alt="Canvas preview" />`;
+            clearPreviewBtn.style.display = "block";
         } catch (error){
             console.log("error", error);
-            container.textContent = "Preview failed.";
+            if (error.message.includes("Premium content detected")) {
+                container.textContent = "Premium content detected. Please ensure there is no premium content on the page that requires a subscription to access.";
+            } else {
+                container.textContent = "Preview failed, Make sure you have selected an element.";
+            }
         }
         // await sandboxProxy.createRectangle();
-
     });
 
 
@@ -107,13 +127,19 @@ addOnUISdk.ready.then(async () => {
         // handle image upload
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'image/*';
+        input.accept = '.png,.jpg,.jpeg,image/png,image/jpeg';
         input.click();
 
         input.onchange = async (e) => {
             const file = e.target.files[0];
             console.log(file);
             if(!file) return;
+
+            // Check if file is PNG or JPG
+            if (file.type !== 'image/png' && file.type !== 'image/jpeg') {
+                alert('Please select a PNG or JPG file only. The selected file type is not supported.');
+                return;
+            }
 
             // Show Croppie interface for cropping the mask image
             const url = URL.createObjectURL(file);
@@ -142,12 +168,18 @@ addOnUISdk.ready.then(async () => {
 
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'image/*';
+        input.accept = '.png,image/png';
         input.click();
         
         input.onchange = async (e) => {
             const file = e.target.files[0];
             if(!file) return;
+
+            // Check if file is PNG
+            if (file.type !== 'image/png') {
+                alert('Please select a PNG file only. The selected file type is not supported.');
+                return;
+            }
 
             console.log("file", file);
             
@@ -159,10 +191,25 @@ addOnUISdk.ready.then(async () => {
             processedImage = file;
             console.log("processedImage", processedImage, url);
             container.innerHTML = `<img src="${url}" alt="Canvas preview" style="max-width: 100%; height: auto;" />`;
+            clearPreviewBtn.style.display = "block";
             
             // Enable Mask Image button since we now have a base image
             imageBtn.disabled = false;
+            maskBtn.disabled = false; // Enable Get Outer Mask button
         };
+    });
+
+    // Clear button logic
+    clearPreviewBtn.addEventListener("click", () => {
+        container.innerHTML = "No content selected";
+        processedImage = null;
+        if (currentBlobUrl) {
+            URL.revokeObjectURL(currentBlobUrl);
+            currentBlobUrl = null;
+        }
+        imageBtn.disabled = true;
+        maskBtn.disabled = true; // Disable Get Outer Mask button
+        clearPreviewBtn.style.display = "none";
     });
 
     function showCroppieInterface(imageUrl, onCropComplete) {
@@ -648,6 +695,10 @@ addOnUISdk.ready.then(async () => {
         
         // Enable Mask Image button since we now have a base image
         imageBtn.disabled = false;
+        maskBtn.disabled = false; // Enable Get Outer Mask button
+        
+        // Show clear button
+        clearPreviewBtn.style.display = "block";
         
         return url;
     }
@@ -686,4 +737,6 @@ addOnUISdk.ready.then(async () => {
       
 
 });
+
+
 
