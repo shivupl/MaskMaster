@@ -113,7 +113,7 @@ addOnUISdk.ready.then(async () => {
             if (error.message.includes("Premium content detected")) {
                 container.textContent = "Premium content detected. Please ensure there is no premium content on the page that requires a subscription to access.";
             } else {
-                container.textContent = "Preview failed, Make sure you have selected an element.";
+                container.textContent = "Preview failed, Make sure you have selected an element on the page.";
             }
         }
         // await sandboxProxy.createRectangle();
